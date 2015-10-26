@@ -1,0 +1,17 @@
+{
+  "name": "Physical Web",
+  "type": "certified",
+  "description": "Physical Web application for Firefox OS",
+  "launch_path": "/index.html",
+  "developer": {
+    "name": "Jan Jongboom",
+    "url": "https://github.com/janjongboom/janos"
+  },
+  "permissions": {
+    "bluetooth": {},
+    "settings":{ "access": "readwrite" }
+  },
+  "icons": {
+    "128": "/icons/128.png"
+  }
+}

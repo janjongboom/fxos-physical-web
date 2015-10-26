@@ -1,0 +1,96 @@
+html, body {
+  font-size: 10px;
+  font-family: 'FiraSans', 'Open Sans', sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+body > section {
+  overflow-y: scroll;
+  overflow-x: hidden;
+  height: calc(100vh - 5rem);
+}
+#content > section {
+  display: none;
+}
+body.searching #searching {
+  display: block;
+  overflow-y: hidden;
+  height: 5rem;
+  width: 100%;
+  margin-bottom: 1rem;
+}
+body.results #results {
+  display: block;
+}
+body.bt-not-available #bt-not-available {
+  display: block;
+}
+
+h1 {
+  font-size: 2.4rem;
+  font-weight: 300;
+  font-style: italic;
+  text-align: center;
+  background: #4688F1;
+  margin: 0;
+  line-height: 5rem;
+  color: white;
+}
+
+#spinner {
+  display: block;
+  background: no-repeat center center url('/images/app_install_spinner.svg');
+  background-size: contain;
+  animation: rotate 2s infinite linear;
+  height: 4.8rem;
+}
+
+@keyframes rotate {
+  from { transform: rotate(1deg); }
+  to { transform: rotate(360deg); }
+}
+
+#searching {
+  margin-top: 2rem;
+}
+
+#results ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  -moz-user-select: none;
+}
+#results li {
+  padding: 1rem 1rem;
+  border-bottom: solid 1px #ccc;
+}
+#results li:active {
+  background: #D5E2F7;
+}
+#results li p {
+  margin: 0;
+  padding: 0;
+}
+#results .name {
+  font-size: 1.8rem;
+  font-weight: 300;
+}
+#results .link {
+  color: #009100;
+  font-size: 1.3rem;
+}
+#results .description {
+  font-size: 1.3rem;
+}
+
+#bt-not-available {
+  text-align: center;
+  font-size: 1.3rem;
+  font-weight: 300;
+}
+#bt-not-available h2 {
+  font-size: 2.4rem;
+  font-weight: 300;
+  margin: 10rem 0 2rem 0;
+}
