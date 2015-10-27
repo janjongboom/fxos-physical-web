@@ -44,6 +44,8 @@ h1 {
   background-size: contain;
   animation: rotate 2s infinite linear;
   height: 4.8rem;
+  width: 4.8rem;
+  margin: 0 auto;
 }
 
 @keyframes rotate {
@@ -75,13 +77,16 @@ h1 {
 #results .name {
   font-size: 1.8rem;
   font-weight: 300;
+  margin-bottom: 0.2rem;
 }
 #results .link {
   color: #009100;
   font-size: 1.3rem;
+  line-height: 1.9rem;
 }
 #results .description {
   font-size: 1.3rem;
+  line-height: 1.9rem;
 }
 
 #bt-not-available {

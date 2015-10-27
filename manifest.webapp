@@ -9,7 +9,8 @@
   },
   "permissions": {
     "bluetooth": {},
-    "settings":{ "access": "readwrite" }
+    "settings":{ "access": "readwrite" },
+    "systemXHR": {}
   },
   "icons": {
     "128": "/icons/128.png"

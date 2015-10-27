@@ -8,6 +8,22 @@
     });
   }
 
+  function getAdapter() {
+    return new Promise(function(res, rej) {
+      function check(count) {
+        console.log('check', count);
+        if (++count > 5) {
+          return rej('Could not get adapter');
+        }
+        if (navigator.mozBluetooth.defaultAdapter) {
+          return res(navigator.mozBluetooth.defaultAdapter);
+        }
+        setTimeout(() => check(count), 300);
+      }
+      check(0);
+    });
+  }
+
   function discover() {
     return navigator.mozBluetooth.defaultAdapter.startLeScan([]).then(handle => {
       _handle = handle;
@@ -26,7 +42,7 @@
         if (uri) {
           var ele = createNotificationElement(e.device.address, uri);
           ele.onclick = openUrl;
-          ele.querySelector('.title').textContent = uri;
+          ele.querySelector('.name').textContent = uri;
           resolveURI(uri, ele);
           return;
         }
@@ -50,7 +66,9 @@
     return ele;
   }
 
-  function resolveURI(uri, ele) {
+  function resolveURI(uri, ele, retryCount) {
+    retryCount = retryCount || 0;
+
     var x = new XMLHttpRequest({ mozSystem: true });
     x.onload = e => {
       var h = document.createElement('html');
@@ -75,7 +93,19 @@
           bodyEl.textContent;
       }
     };
-    x.onerror = err => console.error('Loading', uri, 'failed', err);
+    x.onerror = err => {
+      // probably lost connection or whatever, retry it
+      console.error('Loading', uri, 'failed', err);
+      if (++retryCount > 3) {
+        console.error('RetryCount too high, giving up...');
+        ele.querySelector('.link').textContent = uri;
+        ele.querySelector('.description').textContent =
+          'Could not fetch information, check your internet connection';
+      }
+      else {
+        setTimeout(() => resolveURI(uri, ele, retryCount), 300);
+      }
+    };
     x.open('GET', uri);
     x.send();
   }
@@ -147,15 +177,18 @@
     }
 
     document.body.classList.remove('searching');
-    navigator.mozBluetooth.defaultAdapter.stopLeScan(_handle);
+    try {
+      navigator.mozBluetooth.defaultAdapter.stopLeScan(_handle);
+    }
+    catch (ex) {
+      // dunno if this can fail
+    }
 
     return false;
   }
 
   function openUrl(e) {
-    var uri = e.target.dataset.uri;
-
-    stopDiscovery();
+    var uri = e.currentTarget.dataset.uri;
 
     var a = new MozActivity({
       name: 'view',
@@ -167,6 +200,15 @@
     a.onerror = err => console.error('Opening', uri, 'failed', err);
   }
 
+  window.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+      stopDiscovery();
+    }
+    else {
+      discover();
+    }
+  });
+
   isBluetoothEnabled()
     .then(enabled => {
       if (!enabled) {
@@ -174,6 +216,7 @@
         throw 'Bluetooth not available';
       }
     })
+    .then(() => getAdapter())
     .then(() => document.body.classList.add('results'))
     .then(() => discover())
     .catch(err => console.error('Could not start physical web', err));
