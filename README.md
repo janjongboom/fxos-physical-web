@@ -8,6 +8,7 @@ This is a rudimentary physical web application for Firefox OS. Recognises URIBea
 
 1. Sort based on RSSI, rather than time found
 2. Maybe remove beacons that go out of range for X seconds
+3. Mistakes Eddystone-UID for URL. Should check frameType byte (flags variable) to see if it's 0x10.
 
 ## Running tests
 
