@@ -69,6 +69,10 @@
       return false;
     }
 
+    if (data[11] !== 0x10) {
+      return false; // Eddystone, but not URI
+    }
+
     return parseAd(data, 7); // 7 bytes since the start
   }
 
