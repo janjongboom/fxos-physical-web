@@ -1,0 +1,25 @@
+{
+  "name": "fxos-physical-web",
+  "version": "1.0.0",
+  "description": "Physical Web application for Firefox OS",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "node_modules/mocha/bin/mocha",
+    "watch": "node_modules/mocha/bin/mocha --watch test/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/janjongboom/fxos-physical-web.git"
+  },
+  "author": "Jan Jongboom <janjongboom@gmail.com>",
+  "bugs": {
+    "url": "https://github.com/janjongboom/fxos-physical-web/issues"
+  },
+  "homepage": "https://github.com/janjongboom/fxos-physical-web",
+  "dependencies": {
+    "mocha": "^2.3.3"
+  }
+}

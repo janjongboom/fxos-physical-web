@@ -1,3 +1,4 @@
+/*global parseRecord */
 (function() {
   var results = document.querySelector('#results ul');
   var _handle;
@@ -11,7 +12,6 @@
   function getAdapter() {
     return new Promise(function(res, rej) {
       function check(count) {
-        console.log('check', count);
         if (++count > 5) {
           return rej('Could not get adapter');
         }
@@ -37,13 +37,12 @@
           return;
         }
 
-        // URIBeacon
-        var uri = parseRecord(e.scanRecord);
-        if (uri) {
-          var ele = createNotificationElement(e.device.address, uri);
+        var record = parseRecord(e.scanRecord);
+        if (record) {
+          var ele = createNotificationElement(e.device.address, record.uri);
           ele.onclick = openUrl;
-          ele.querySelector('.name').textContent = uri;
-          resolveURI(uri, ele);
+          ele.querySelector('.name').textContent = record.uri;
+          resolveURI(record.uri, ele);
           return;
         }
       };
@@ -89,8 +88,9 @@
           metaEl.content;
       }
       else if (bodyEl && bodyEl.textContent) {
-        ele.querySelector('.description').textContent =
-          bodyEl.textContent;
+        var tx = bodyEl.textContent.substr(0, 115);
+        if (tx.length !== bodyEl.textContent.length) tx += '...';
+        ele.querySelector('.description').textContent = tx;
       }
     };
     x.onerror = err => {
@@ -108,67 +108,6 @@
     };
     x.open('GET', uri);
     x.send();
-  }
-
-  function parseRecord(scanRecord) {
-    var data = new Uint8Array(scanRecord);
-
-    for (var b = 0; b < 8; b++) {
-      if (data[b] === 0x03 && data[b + 1] === 0x03 &&
-          data[b + 2] === 0xd8 && data[b + 3] === 0xfe) {
-        break;
-      }
-    }
-
-    if (b === 8) {
-      return false;
-    }
-
-    var schemes = [
-      'http://www.',
-      'https://www.',
-      'http://',
-      'https://',
-      'urn:uuid:'
-    ];
-
-    var expansions = [
-      '.com/',
-      '.org/',
-      '.edu/',
-      '.net/',
-      '.info/',
-      '.biz/',
-      '.gov/',
-      '.com',
-      '.org',
-      '.edu',
-      '.net',
-      '.info',
-      '.biz',
-      '.gov',
-    ];
-
-    b += 4;
-    var adLength = data[b++];
-    var adType = data[b++];
-    b += 2; // skip Service UUID
-    var flags = data[b++];
-    var txPower = data[b++];
-    var scheme = data[b++];
-
-    var text = schemes[scheme];
-    // it has been 0x06 bytes since we read adLength, so take that into account
-    for (var i = b, c = data[i]; i < b + adLength - 0x06; c = data[++i]) {
-      if (c < expansions.length) {
-        text += expansions[c];
-      }
-      else {
-        text += String.fromCharCode(c);
-      }
-    }
-
-    return text;
   }
 
   function stopDiscovery(e) {
