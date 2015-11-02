@@ -4,10 +4,12 @@
 
 This is a rudimentary physical web application for Firefox OS. Recognises URIBeacon and Eddystone beacons.
 
-## Todo
+It sorts beacons based on distance, which can be frustrating when 2 beacons are close, as they might jump locations.
+You can disable this behavior, and do oldest first ordering by commenting out the following line in scanner.js:
 
-1. Sort based on RSSI, rather than time found
-2. Maybe remove beacons that go out of range for X seconds
+```javascript
+.sort((a, b) => calcDistance(a) - calcDistance(b))
+```
 
 ## Running tests
 

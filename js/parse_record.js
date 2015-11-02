@@ -82,7 +82,7 @@
     var adType = data[b++];
     b += 2; // skip Service UUID
     var flags = data[b++];
-    var txPower = data[b++];
+    var txPower = -(256 - data[b++]);
     var scheme = data[b++];
 
     var text = schemes[scheme];

@@ -1,7 +1,8 @@
-/*global parseRecord */
+/*global parseRecord virtualDom */
 (function() {
-  var results = document.querySelector('#results ul');
+  var results = document.querySelector('#results');
   var _handle;
+  var tree, rootNode; // virtualDom vars
 
   function isBluetoothEnabled() {
     return navigator.mozSettings.createLock().get('bluetooth.enabled').then(a => {
@@ -24,7 +25,40 @@
     });
   }
 
+  var beacons = {};
+
+  function render() {
+    var h = virtualDom.h;
+
+    return h('ul', [
+      Object.keys(beacons)
+        .map(k=>beacons[k])
+        .sort((a, b) => calcDistance(a) - calcDistance(b))
+        .map(beacon => {
+          return h('li', {
+            attributes: { 'data-uri': beacon.uri, 'data-device': beacon.address },
+            onclick: openUrl
+          }, [
+            h('p', { className: 'name' }, [ beacon.title ]),
+            h('p', { className: 'link' }, [ beacon.uri ]),
+            h('p', { className: 'description' }, [ beacon.description ]),
+          ]);
+        })
+    ]);
+  }
+
+  function incrementalRender() {
+    var newTree = render();
+    var patches = virtualDom.diff(tree, newTree);
+    rootNode = virtualDom.patch(rootNode, patches);
+    tree = newTree;
+  }
+
   function discover() {
+    // clear beacons
+    beacons = {};
+    incrementalRender();
+
     return navigator.mozBluetooth.defaultAdapter.startLeScan([]).then(handle => {
       _handle = handle;
 
@@ -32,44 +66,29 @@
 
       console.log('Start scanning', handle);
       handle.ondevicefound = e => {
-        var currEl = results.querySelector(
-            '*[data-device="' + e.device.address + '"]');
-        if (currEl) {
-          currEl.dataset.rssi = e.rssi;
-          return;
+        if (beacons[e.device.address]) {
+          beacons[e.device.address].lastSeen = new Date();
+          beacons[e.device.address].rssi = e.rssi;
+          return incrementalRender();
         }
 
         var record = parseRecord(e.scanRecord);
         if (record) {
-          var ele = createNotificationElement(e.device.address, e.rssi, record);
-          ele.onclick = openUrl;
-          ele.querySelector('.name').textContent = record.uri;
-          resolveURI(record.uri, ele);
-          return;
+          beacons[e.device.address] = {
+            rssi: e.rssi,
+            txPower: record.txPower,
+            address: e.device.address,
+            uri: record.uri,
+            lastSeen: new Date()
+          };
+          resolveURI(beacons[e.device.address]);
+          incrementalRender();
         }
       };
     });
   }
 
-  function createNotificationElement(address, rssi, record) {
-    var ele = document.createElement('li');
-    ele.dataset.device = address;
-    ele.dataset.rssi = rssi;
-    ele.dataset.txPower = record.txPower;
-    ele.innerHTML = `
-      <p class="name"></p>
-      <p class="link"></p>
-      <p class="description"></p>`;
-
-    ele.querySelector('.name').textContent = record.uri;
-    ele.dataset.uri = record.uri;
-
-    results.appendChild(ele);
-
-    return ele;
-  }
-
-  function resolveURI(uri, ele, retryCount) {
+  function resolveURI(beacon, retryCount) {
     retryCount = retryCount || 0;
 
     var x = new XMLHttpRequest({ mozSystem: true });
@@ -77,40 +96,41 @@
       var h = document.createElement('html');
       h.innerHTML = x.responseText;
 
-      ele.querySelector('.link').textContent = x.responseURL;
+      beacon.uri = x.responseURL;
 
       var titleEl = h.querySelector('title');
       var metaEl = h.querySelector('meta[name="description"]');
       var bodyEl = h.querySelector('body');
 
       if (titleEl && titleEl.textContent) {
-        ele.querySelector('.name').textContent = titleEl.textContent;
+        beacon.title = titleEl.textContent;
       }
 
       if (metaEl && metaEl.content) {
-        ele.querySelector('.description').textContent =
-          metaEl.content;
+        beacon.description = metaEl.content;
       }
       else if (bodyEl && bodyEl.textContent) {
         var tx = bodyEl.textContent.substr(0, 115);
         if (tx.length !== bodyEl.textContent.length) tx += '...';
-        ele.querySelector('.description').textContent = tx;
+        beacon.description = tx;
       }
+
+      incrementalRender();
     };
     x.onerror = err => {
       // probably lost connection or whatever, retry it
       console.error('Loading', uri, 'failed', err);
       if (++retryCount > 3) {
         console.error('RetryCount too high, giving up...');
-        ele.querySelector('.link').textContent = uri;
-        ele.querySelector('.description').textContent =
-          'Could not fetch information, check your internet connection';
+        beacon.uri = uri;
+        beacon.description = 'Could not fetch information, check your internet connection';
+        incrementalRender();
       }
       else {
-        setTimeout(() => resolveURI(uri, ele, retryCount), 300);
+        setTimeout(() => resolveURI(beacon, retryCount), 300);
       }
     };
-    x.open('GET', uri);
+    x.open('GET', beacon.uri);
     x.send();
   }
 
@@ -143,6 +163,21 @@
     a.onerror = err => console.error('Opening', uri, 'failed', err);
   }
 
+  function calcDistance(beacon) {
+    // from https://github.com/sandeepmistry/node-eddystone-beacon-scanner/blob/master/lib/eddystone-beacon-scanner.js
+    // it seems wildly inaccurate, but useful to check which beacon is closer
+    return Math.pow(10, ((beacon.txPower - beacon.rssi) - 41) / 20.0);
+  }
+
+  // clean up beacons we didnt see for 10s
+  setInterval(() => {
+    var b = Object.keys(beacons).filter(k => beacons[k].lastSeen < new Date() - 10000);
+    if (b.length) {
+      b.forEach(k => delete beacons[k]);
+      incrementalRender();
+    }
+  }, 2000);
+
   window.addEventListener('visibilitychange', function() {
     if (document.hidden) {
       stopDiscovery();
@@ -158,6 +193,11 @@
         document.body.classList.add('bt-not-available');
         throw 'Bluetooth not available';
       }
+
+      // Set up virtualDom
+      tree = render();
+      rootNode = virtualDom.create(tree);
+      results.appendChild(rootNode);
     })
     .then(() => getAdapter())
     .then(() => document.body.classList.add('results'))
