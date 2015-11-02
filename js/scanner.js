@@ -32,14 +32,16 @@
 
       console.log('Start scanning', handle);
       handle.ondevicefound = e => {
-        if (results.querySelector(
-            '*[data-device="' + e.device.address + '"]')) {
+        var currEl = results.querySelector(
+            '*[data-device="' + e.device.address + '"]');
+        if (currEl) {
+          currEl.dataset.rssi = e.rssi;
           return;
         }
 
         var record = parseRecord(e.scanRecord);
         if (record) {
-          var ele = createNotificationElement(e.device.address, record.uri);
+          var ele = createNotificationElement(e.device.address, e.rssi, record);
           ele.onclick = openUrl;
           ele.querySelector('.name').textContent = record.uri;
           resolveURI(record.uri, ele);
@@ -49,16 +51,18 @@
     });
   }
 
-  function createNotificationElement(address, uri) {
+  function createNotificationElement(address, rssi, record) {
     var ele = document.createElement('li');
     ele.dataset.device = address;
+    ele.dataset.rssi = rssi;
+    ele.dataset.txPower = record.txPower;
     ele.innerHTML = `
       <p class="name"></p>
       <p class="link"></p>
       <p class="description"></p>`;
 
-    ele.querySelector('.name').textContent = uri;
-    ele.dataset.uri = uri;
+    ele.querySelector('.name').textContent = record.uri;
+    ele.dataset.uri = record.uri;
 
     results.appendChild(ele);
 
